@@ -79,7 +79,7 @@ class WP_Roles {
 	}
 
 	/**
-	 * Make private/protected methods readable for backwards compatibility.
+	 * Make private/protected methods readable for backward compatibility.
 	 *
 	 * @since 4.0.0
 	 * @access public
@@ -105,11 +105,11 @@ class WP_Roles {
 	 * @since 2.1.0
 	 * @access protected
 	 *
-	 * @global wpdb  $wpdb          WordPress database abstraction object.
 	 * @global array $wp_user_roles Used to set the 'roles' property value.
 	 */
 	protected function _init() {
-		global $wpdb, $wp_user_roles;
+		global $wp_user_roles, $wpdb;
+
 		$this->role_key = $wpdb->get_blog_prefix() . 'user_roles';
 		if ( ! empty( $wp_user_roles ) ) {
 			$this->roles = $wp_user_roles;
@@ -133,19 +133,18 @@ class WP_Roles {
 	 * Reinitialize the object
 	 *
 	 * Recreates the role objects. This is typically called only by switch_to_blog()
-	 * after switching wpdb to a new blog ID.
+	 * after switching wpdb to a new site ID.
 	 *
 	 * @since 3.5.0
 	 * @access public
-	 *
-	 * @global wpdb $wpdb WordPress database abstraction object.
 	 */
 	public function reinit() {
-		// There is no need to reinit if using the wp_user_roles global.
-		if ( ! $this->use_db )
-			return;
-
 		global $wpdb;
+
+		// There is no need to reinit if using the wp_user_roles global.
+		if ( ! $this->use_db ) {
+			return;
+		}
 
 		// Duplicated from _init() to avoid an extra function call.
 		$this->role_key = $wpdb->get_blog_prefix() . 'user_roles';

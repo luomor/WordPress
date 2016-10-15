@@ -9,7 +9,7 @@
 /** Load WordPress Administration Bootstrap */
 require_once( dirname( __FILE__ ) . '/admin.php' );
 if ( ! current_user_can( 'manage_links' ) )
-	wp_die( __( 'You do not have sufficient permissions to edit the links for this site.' ) );
+	wp_die( __( 'Sorry, you are not allowed to edit the links for this site.' ) );
 
 $wp_list_table = _get_list_table('WP_Links_List_Table');
 
@@ -19,17 +19,34 @@ $doaction = $wp_list_table->current_action();
 if ( $doaction && isset( $_REQUEST['linkcheck'] ) ) {
 	check_admin_referer( 'bulk-bookmarks' );
 
+	$redirect_to = admin_url( 'link-manager.php' );
+	$bulklinks = (array) $_REQUEST['linkcheck'];
+
 	if ( 'delete' == $doaction ) {
-		$bulklinks = (array) $_REQUEST['linkcheck'];
 		foreach ( $bulklinks as $link_id ) {
 			$link_id = (int) $link_id;
 
 			wp_delete_link( $link_id );
 		}
 
-		wp_redirect( add_query_arg('deleted', count( $bulklinks ), admin_url( 'link-manager.php' ) ) );
-		exit;
+		$redirect_to = add_query_arg( 'deleted', count( $bulklinks ), $redirect_to );
+	} else {
+		/**
+		 * Fires when a custom bulk action should be handled.
+		 *
+		 * The redirect link should be modified with success or failure feedback
+		 * from the action to be used to display feedback to the user.
+		 *
+		 * @since 4.7.0
+		 *
+		 * @param string $redirect_to The redirect URL.
+		 * @param string $doaction    The action being taken.
+		 * @param array  $bulklinks   The links to take the action on.
+		 */
+		$redirect_to = apply_filters( 'handle_bulk_actions-' . get_current_screen()->id, $redirect_to, $doaction, $bulklinks );
 	}
+	wp_redirect( $redirect_to );
+	exit;
 } elseif ( ! empty( $_GET['_wp_http_referer'] ) ) {
 	 wp_redirect( remove_query_arg( array( '_wp_http_referer', '_wpnonce' ), wp_unslash( $_SERVER['REQUEST_URI'] ) ) );
 	 exit;
@@ -57,8 +74,8 @@ get_current_screen()->add_help_tab( array(
 
 get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .
-	'<p>' . __('<a href="https://codex.wordpress.org/Links_Screen" target="_blank">Documentation on Managing Links</a>') . '</p>' .
-	'<p>' . __('<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
+	'<p>' . __('<a href="https://codex.wordpress.org/Links_Screen">Documentation on Managing Links</a>') . '</p>' .
+	'<p>' . __('<a href="https://wordpress.org/support/">Support Forums</a>') . '</p>'
 );
 
 get_current_screen()->set_screen_reader_content( array(
@@ -68,14 +85,17 @@ get_current_screen()->set_screen_reader_content( array(
 include_once( ABSPATH . 'wp-admin/admin-header.php' );
 
 if ( ! current_user_can('manage_links') )
-	wp_die(__("You do not have sufficient permissions to edit the links for this site."));
+	wp_die(__('Sorry, you are not allowed to edit the links for this site.'));
 
 ?>
 
 <div class="wrap nosubsub">
 <h1><?php echo esc_html( $title ); ?> <a href="link-add.php" class="page-title-action"><?php echo esc_html_x('Add New', 'link'); ?></a> <?php
-if ( !empty($_REQUEST['s']) )
-	printf( '<span class="subtitle">' . __('Search results for &#8220;%s&#8221;') . '</span>', esc_html( wp_unslash($_REQUEST['s']) ) ); ?>
+if ( isset( $_REQUEST['s'] ) && strlen( $_REQUEST['s'] ) ) {
+	/* translators: %s: search keywords */
+	printf( '<span class="subtitle">' . __( 'Search results for &#8220;%s&#8221;' ) . '</span>', esc_html( wp_unslash( $_REQUEST['s'] ) ) );
+}
+?>
 </h1>
 
 <?php
